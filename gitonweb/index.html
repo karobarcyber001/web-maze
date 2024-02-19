@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maze Game</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(to right, #2193b0, #6dd5ed);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  canvas {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 4px solid #333; /* Border around the maze */
+  }
+
+  .controller {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    border-radius: 10px;
+  }
+
+  .controller button {
+    margin: 0 10px; /* Spacing between buttons */
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+
+  .controller button:hover {
+    background-color: #45a049;
+  }
+
+  #instructions {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    font-size: 18px;
+    color: white;
+  }
+
+  #exitMaze {
+    display: none;
+  }
+
+  #createMaze {
+    z-index: 2;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+
+  #createSecondMaze {
+    display: none;
+    z-index: 2;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+
+</style>
+</head>
+<body>
+<div id="instructions">
+  <p>Click "Create Maze" to generate the maze. Use the arrow buttons to navigate through the maze. Reach the green exit point to win!</p>
+</div>
+<canvas id="mazeCanvas"></canvas>
+<div class="controller">
+  <button id="up">Up</button>
+  <div>
+    <button id="left">Left</button>
+    <button id="right">Right</button>
+  </div>
+  <button id="down">Down</button>
+</div>
+<button id="createMaze">Create Maze</button>
+<button id="createSecondMaze">Create Second Maze</button>
+<button id="exitMaze">Exit Maze</button>
+<script>
+  const canvas = document.getElementById("mazeCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const mazeWidth = 800;
+  const mazeHeight = 600;
+  canvas.width = mazeWidth;
+  canvas.height = mazeHeight;
+
+  let maze;
+  const wallSize = 40;
+  let currentMaze = 0;
+
+  function generateRandomMaze() {
+    maze = [];
+    for (let i = 0; i < mazeHeight / wallSize; i++) {
+      maze[i] = [];
+      for (let j = 0; j < mazeWidth / wallSize; j++) {
+        if (i === 0 || i === mazeHeight / wallSize - 1 || j === 0 || j === mazeWidth / wallSize - 1 || (i % 2 === 0 && j % 2 === 0)) {
+          maze[i][j] = 1; // Wall
+        } else {
+          maze[i][j] = 0; // Empty space
+        }
+      }
+    }
+    // Set entry and exit points
+    maze[0][1] = 0; // Entry point
+    maze[maze.length - 2][maze[0].length - 1] = 2; // Exit point
+  }
+
+  function drawMaze() {
+    for (let i = 0; i < maze.length; i++) {
+      for (let j = 0; j < maze[i].length; j++) {
+        if (maze[i][j] === 1) {
+          ctx.fillStyle = "#333"; // Wall color
+          ctx.fillRect(j * wallSize, i * wallSize, wallSize, wallSize);
+        } else if (maze[i][j] === 2) {
+          drawExitSymbol(j, i);
+        } else if (maze[i][j] === 3) {
+          drawExitSymbol(j, i);
+        }
+      }
+    }
+  }
+
+  function drawExitSymbol(exitX, exitY) {
+    // Draw exit symbol
+    ctx.fillStyle = "green";
+    ctx.fillRect(exitX * wallSize, exitY * wallSize, wallSize, wallSize);
+    ctx.beginPath();
+    ctx.moveTo(exitX * wallSize + wallSize / 2, exitY * wallSize + 5);
+    ctx.lineTo(exitX * wallSize + wallSize - 5, exitY * wallSize + wallSize / 2);
+    ctx.lineTo(exitX * wallSize + wallSize / 2, exitY * wallSize + wallSize - 5);
+    ctx.lineTo(exitX * wallSize + 5, exitY * wallSize + wallSize / 2);
+    ctx.closePath();
+    ctx.fillStyle = "black";
+    ctx.fill();
+  }
+
+  function drawAnimal(x, y) {
+    const animalImage = new Image();
+    animalImage.src = "https://cdn-icons-png.flaticon.com/128/1927/1927656.png";
+    animalImage.onload = function() {
+      ctx.drawImage(animalImage, x - wallSize / 4, y - wallSize / 4, wallSize / 2, wallSize / 2);
+    };
+  }
+
+  function resetAnimal() {
+    if (currentMaze === 0) {
+      animalX = wallSize / 2;
+      animalY = wallSize / 2;
+    } else {
+      animalX = mazeWidth - wallSize / 2;
+      animalY = mazeHeight - wallSize / 2;
+    }
+    drawAnimal(animalX, animalY);
+  }
+
+  function moveAnimal(dx, dy) {
+    const newX = animalX + dx;
+    const newY = animalY + dy;
+    const mazeX = Math.floor(newX / wallSize);
+    const mazeY = Math.floor(newY / wallSize);
+
+    if (maze[mazeY][mazeX] !== 1 && newX >= 0 && newX <= mazeWidth - wallSize && newY >= 0 && newY <= mazeHeight - wallSize) {
+      animalX = newX;
+      animalY = newY;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawMaze();
+      drawAnimal(animalX, animalY);
+      if ((currentMaze === 0 && mazeX === maze[0].length - 1 && mazeY === maze.length - 2) || (currentMaze === 1 && mazeX === 0 && mazeY === 1)) {
+        document.getElementById("createSecondMaze").style.display = "block";
+        document.getElementById("exitMaze").style.display = "none";
+      }
+      if (maze[mazeY][mazeX] === 2 && currentMaze === 0) {
+        document.getElementById("exitMaze").style.display = "block";
+      } else if (maze[mazeY][mazeX] === 3 && currentMaze === 1) {
+        alert("Congratulations! You've won the game!");
+      }
+    }
+  }
+
+  function createMaze() {
+    generateRandomMaze();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawMaze();
+    resetAnimal();
+    document.getElementById("createMaze").style.display = "none";
+    document.getElementById("exitMaze").style.display = "none";
+  }
+
+  function createSecondMaze() {
+    currentMaze++;
+    generateRandomMaze();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawMaze();
+    resetAnimal();
+    document.getElementById("createSecondMaze").style.display = "none";
+    document.getElementById("exitMaze").style.display = "none";
+  }
+
+  document.getElementById("createMaze").addEventListener("click", createMaze);
+  document.getElementById("createSecondMaze").addEventListener("click", createSecondMaze);
+
+  let animalX = wallSize / 2;
+  let animalY = wallSize / 2;
+  drawAnimal(animalX, animalY);
+
+  document.getElementById("up").addEventListener("click", function() {
+    moveAnimal(0, -wallSize);
+  });
+  document.getElementById("down").addEventListener("click", function() {
+    moveAnimal(0, wallSize);
+  });
+  document.getElementById("left").addEventListener("click", function() {
+    moveAnimal(-wallSize, 0);
+  });
+  document.getElementById("right").addEventListener("click", function() {
+    moveAnimal(wallSize, 0);
+  });
+</script>
+</body>
+</html>
